@@ -1,0 +1,22 @@
+version: '2'
+services:
+    base:
+        build:
+            context: .
+            dockerfile: base/Dockerfile
+        image:  user/base
+    base.db:
+        build:
+            context: .
+            dockerfile: base-with-db/Dockerfile
+        image:  user/base-db
+        depends_on:
+          - base
+    pytorch-mpi:
+        build:
+            context: .
+            dockerfile: pytorch-mpi/Dockerfile
+        image:  user/pytorch-mpi
+        depends_on:
+            - base.db
+
