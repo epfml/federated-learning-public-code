@@ -7,12 +7,9 @@ import pcode.datasets.prepare_data as prepare_data
 import pcode.datasets.partition_data as partition_data
 
 import pcode.aggregation.fedavg as fedavg
-import pcode.aggregation.knowledge_transfer as knowledge_transfer
 import pcode.aggregation.swa_knowledge_transfer as swa_knowledge_transfer
-import pcode.aggregation.adv_knowledge_transfer as adv_knowledge_transfer
 import pcode.aggregation.noise_knowledge_transfer as noise_knowledge_transfer
 import pcode.aggregation.server_momentum as server_momentum
-import pcode.aggregation.server_adaptive as server_adaptive
 
 
 class Aggregator(object):
@@ -29,26 +26,7 @@ class Aggregator(object):
         self.clientid2arch = clientid2arch
 
         # for the ease of aggregation.
-        # some examples for the argparse.
-        # 0. --fl_aggregate scheme=federated_average
-        # 1. --fl_aggregate scheme=learning_to_aggregate,layerwise=False,data_name=cifar10,data_type=train,data_scheme=random_sampling,data_percentage=0.1,optim_name=adam,optim_lr=0.1,epochs=3
-        # 2. --fl_aggregate scheme=optimal_transport
-        # 3. --fl_aggregate scheme=unlabeled_train_on_server,soft_label_scheme=majority_vote,top1_starting_threshold=50,data_name=cifar10,data_type=train,data_scheme=random_sampling,data_percentage=0.1,val_percentage=0.1,optim_name=sgd,optim_lr=0.1,epochs_max=16,epochs=plateau,plateau_tol=1e-3,max_eps=0.1 \
-        # 4. --fl_aggregate scheme=knowledge_transfer,construct_scheme=class_similarity_dirichlet,top1_starting_threshold=50,outer_iters=10,inner_epochs=256,kt_batch_size_per_class=250,kt_g_batch_size_per_class=128,kt_scaling_factors=1:0.1,kt_data_generate_iters=1024,step_size=0.001,optim_name=adam,optim_lr=0.001
-        # 5. --fl_aggregate scheme=adv_knowledge_transfer,top1_starting_threshold=50,data_name=cifar10,total_n_pseudo_batches=1000,generator_learning_rate=1e-4,student_learning_rate=2e-4
-        if conf.fl_aggregate is not None:
-            if conf.fl_aggregate["scheme"] == "adv_knowledge_transfer":
-                self.data_info = self._define_aggregation_data(return_loader=True)
-            elif conf.fl_aggregate["scheme"] == "noise_knowledge_transfer":
-                self.data_info = self._define_aggregation_data(return_loader=True)
-            elif (
-                conf.fl_aggregate["scheme"] == "federated_average"
-                or conf.fl_aggregate["scheme"] == "server_momentum"
-            ) and (
-                "server_teaching_scheme" not in conf.fl_aggregate
-                or "drop" in conf.fl_aggregate["server_teaching_scheme"]
-            ):
-                self.data_info = self._define_aggregation_data(return_loader=True)
+        self.data_info = self._define_aggregation_data(return_loader=True)
 
         # define the aggregation function.
         self._define_aggregate_fn()
@@ -59,16 +37,13 @@ class Aggregator(object):
             or self.conf.fl_aggregate["scheme"] == "federated_average"
         ):
             self.aggregate_fn = None
-        elif self.conf.fl_aggregate["scheme"] == "knowledge_transfer":
-            self.aggregate_fn = self._s5_knowledge_transfer()
-        elif self.conf.fl_aggregate["scheme"] == "adv_knowledge_transfer":
-            self.aggregate_fn = self._s6_adv_knowledge_transfer()
         elif self.conf.fl_aggregate["scheme"] == "noise_knowledge_transfer":
+            # i.e. FedDF
             self.aggregate_fn = self._s7_noise_knowledge_transfer()
+        elif self.conf.fl_aggregate["scheme"] == "swa_knowledge_transfer":
+            self.aggregate_fn = self._s10_swa_knowledge_transfer()
         elif self.conf.fl_aggregate["scheme"] == "server_momentum":
             self.aggregate_fn = self._s8_server_momentum()
-        elif self.conf.fl_aggregate["scheme"] == "server_adaptive":
-            self.aggregate_fn = self._s9_server_adaptive()
         else:
             raise NotImplementedError
 
@@ -85,37 +60,6 @@ class Aggregator(object):
                 metrics=self.metrics,
                 val_data_loader=self.data_info["self_val_data_loader"],
             )
-
-        return f
-
-    def _s5_knowledge_transfer(self):
-        def f(**kwargs):
-            _client_models = knowledge_transfer.aggregate(
-                conf=self.conf,
-                fedavg_model=kwargs["fedavg_model"],
-                client_models=kwargs["client_models"],
-                criterion=self.criterion,
-                metrics=self.metrics,
-                flatten_local_models=kwargs["flatten_local_models"],
-                fa_val_perf=kwargs["performance"],
-            )
-            return _client_models
-
-        return f
-
-    def _s6_adv_knowledge_transfer(self):
-        def f(**kwargs):
-            _client_models = adv_knowledge_transfer.aggregate(
-                conf=self.conf,
-                fedavg_models=kwargs["fedavg_models"],
-                client_models=kwargs["client_models"],
-                criterion=self.criterion,
-                metrics=self.metrics,
-                flatten_local_models=kwargs["flatten_local_models"],
-                fa_val_perf=kwargs["performance"],
-                val_data_loader=self.data_info["self_val_data_loader"],
-            )
-            return _client_models
 
         return f
 
@@ -141,19 +85,6 @@ class Aggregator(object):
     def _s8_server_momentum(self):
         def f(**kwargs):
             _client_models = server_momentum.aggregate(
-                conf=self.conf,
-                master_model=kwargs["master_model"],
-                fedavg_model=kwargs["fedavg_model"],
-                client_models=kwargs["client_models"],
-                flatten_local_models=kwargs["flatten_local_models"],
-            )
-            return _client_models
-
-        return f
-
-    def _s9_server_adaptive(self):
-        def f(**kwargs):
-            _client_models = server_adaptive.aggregate(
                 conf=self.conf,
                 master_model=kwargs["master_model"],
                 fedavg_model=kwargs["fedavg_model"],
