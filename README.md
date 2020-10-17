@@ -1,6 +1,6 @@
-This repository maintain a codebase for Federated Learning research. It supports:
+This repository maintains a codebase for Federated Learning research. It supports:
 * PyTorch with MPI backend for a Master-Worker computation/communication topology.
-* Local training (on a randomly sampled clients) can be efficiently executed in a parallel-fashion over GPUs/nodes.
+* Local training can be efficiently executed in a parallel-fashion over GPUs for randomly sampled clients.
 * Different FL algorithms, e.g., FedAvg, FedProx, FedAvg with Server Momentum, and FedDF, are implemented as the baselines.
 
 # Code Usage
