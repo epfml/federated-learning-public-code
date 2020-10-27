@@ -130,12 +130,12 @@ $HOME/conda/envs/pytorch-py3.6/bin/python run.py \
     --manual_seed 7 --pn_normalize False --same_seed_process False
 ```
 
-### ImageNet with ResNet-8 (heterogenous)
-The script below shows how to train a heterogenous FL system (i.e., `mobilenetv2`, `shufflenetv2-1`, and `resnet20`) on ImageNet.
+### ImageNet with ResNet-8 (heterogeneous)
+The script below shows how to train a heterogeneous FL system (i.e., `ResNet-32`, `shufflenetv2-1`, and `resnet20`) on ImageNet.
 
 ```
 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 $HOME/conda/envs/pytorch-py3.6/bin/python run.py \
-    --arch resnet20 --complex_arch master=mobilenetv2,worker=mobilenetv2:shufflenetv2-1:resnet20,num_clients_per_model=50 --experiment heterogeneous \
+    --arch resnet20 --complex_arch master=resnet20,worker=resnet32:shufflenetv2-1:resnet20,num_clients_per_model=50 --experiment heterogeneous \
     --data imagenet32 --data_dir ./dataset/ILSVRC --pin_memory True --batch_size 64 --num_workers 2 \
     --partition_data non_iid_dirichlet --non_iid_alpha 1 \
     --train_data_ratio 1 --val_data_ratio 0.01 \
