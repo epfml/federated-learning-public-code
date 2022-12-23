@@ -1,9 +1,15 @@
-FROM nvidia/cuda:11.2.1-cudnn8-devel-ubuntu18.04
+FROM nvidia/cuda:11.3.1-cudnn8-devel-ubuntu20.04
 
+# Some important environment variables in Dockerfile
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai LANG=C.UTF-8 LC_ALL=C.UTF-8 PIP_NO_CACHE_DIR=1
 
 # install some necessary tools.
-RUN echo "deb http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list
-RUN apt-get update \
+# RUN echo "deb http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list
+RUN sed -i  "s/archive.ubuntu.com/mirrors.ustc.edu.cn/g" /etc/apt/sources.list && \
+        sed -i  "s/security.ubuntu.com/mirrors.ustc.edu.cn/g" /etc/apt/sources.list && \
+        rm -f /etc/apt/sources.list.d/* && \
+        apt-get update \
         && apt-get install -y --no-install-recommends \
         build-essential \
         ca-certificates \
@@ -44,10 +50,10 @@ RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
 
 # configure user.
 ENV SHELL=/bin/bash \
-        NB_USER=lin \
-        NB_UID=144057 \
-        NB_GROUP=MLO-unit \
-        NB_GID=11169
+        NB_USER=taolin \
+        NB_UID=1005 \
+        NB_GROUP=taolin \
+        NB_GID=1005
 ENV HOME=/home/$NB_USER
 
 ADD base/fix-permissions /usr/local/bin/fix-permissions
@@ -59,7 +65,7 @@ RUN useradd -m -s /bin/bash -N -u $NB_UID -g $NB_GID $NB_USER && \
         echo "${NB_USER}:${NB_USER}" | chpasswd && \
         usermod -aG sudo,adm,root ${NB_USER} && \
         fix-permissions $HOME
-RUN echo 'lin ALL=(ALL) NOPASSWD: ALL' | sudo EDITOR='tee -a' visudo
+RUN echo 'taolin ALL=(ALL) NOPASSWD: ALL' | sudo EDITOR='tee -a' visudo
 
 # Default ssh config file that skips (yes/no) question when first login to the host
 RUN mkdir /var/run/sshd
